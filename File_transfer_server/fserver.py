@@ -1,11 +1,35 @@
-import socket
+import socket ,mysql.connector 
 import threading
 import os
+
+def cursor_sql(command,file_details):
+    mydb = mysql.connector.connect(host = "localhost",user = "root",password = "November21!",database = "file_share")
+    my_cursor = mydb.cursor()
+    
+    if command =="upload":
+        #insert_sql(file_details)
+        print "upload"
+        sqlstuff = "INSERT INTO test (filename , size ,  downloads) VALUES (%s,%s,%s)" 
+        my_cursor.execute(sqlstuff ,(file_details))
+        mydb.commit()
+    if command =="remove":
+        print "remove"
+        my_sql = "DELETE FROM test WHERE filename = %s"
+        my_cursor.execute(my_sql,(file_details,))
+        mydb.commit()
+    if command == "modify" :
+        print file_details
+        
+        sql_com = "SELECT downloads = downloads + 1  FROM test WHERE filename = %s"
+        my_cursor.execute(sql_com,(file_details,))
+        mydb.commit()
 
 def get_files(sock):
     list = os.listdir(os.curdir)
     list.remove("fserver.py")
     sock.send(str(list))
+    # change this to pull the table from the SQL server 
+
     
 def del_file(sock,name):
     if os.path.isfile(name):
@@ -15,6 +39,7 @@ def del_file(sock,name):
         
         if userResponse == "Y":
             os.remove(name)
+            cursor_sql("remove",name)
     #find file and send exists 
 
 def Retrfile(filename,sock):#sending file from the server to the client
@@ -29,14 +54,15 @@ def Retrfile(filename,sock):#sending file from the server to the client
                 while bytesToSend != "":
                     bytesToSend = f.read(1024)
                     sock.send(bytesToSend)
+                    cursor_sql("modify",filename)
     else:
         sock.send("ERR ")
         
-    sock.close()
-    
+        
+        
 def send_file(sock,filename):# file transfered from the client to the server.
-
-    if os.path.isfile(filename):
+    
+    if os.path.isfile(filename): #and len(filename)<??
         sock.send("ERR")
         print "message send: ERR"#
     else:
@@ -56,10 +82,10 @@ def send_file(sock,filename):# file transfered from the client to the server.
             print "{0:.2f}".format((totalRecv/float(filesize))*100)+ "% Done"
         sock.send("File send succesfully!")
         f.close()
-
+        cursor_sql("upload",[filename,filesize,0])
         
-    sock.close()
-    
+
+
 def handle(name,sock):
     code = sock.recv(1024)
     print code
@@ -74,7 +100,7 @@ def handle(name,sock):
     if code[:4] == "send":
         name = code[4:]
         send_file(sock,name)
-        
+    sock.close()
 
 
 
@@ -97,3 +123,9 @@ def main():
     s.close()    
     
 main()
+
+""" bug report :
+1 script crashes if the client attempts to send file that does not exist in the fclient folder 
+2 cannot modify file send from client to server while script is running (f.close on server?)
+3 send file from client must be !=0
+4 the position column does not update after removing a file SQL """
