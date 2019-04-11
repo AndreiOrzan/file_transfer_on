@@ -30,7 +30,6 @@ def main():
     if sys.argv[1] == "get":
         
         s.send("get" + str(sys.argv[2]))
-
         data = s.recv(1024)
         
         if data[:6] =="EXISTS":
@@ -67,22 +66,29 @@ def main():
                 s.send("Y")
                 
     if sys.argv[1] == "send":
-        s.send("send"+str(sys.argv[2]))
-        serverResponse = s.recv(1024)
-        if serverResponse == "ERR":
-            print "A file with the same name is allready saved on the server"
+        if len(str(sys.argv[2])) < 20 and os.path.getsize(filename) > 0:
+            if os.path.isfile(str(sys.argv[2])) :
+                s.send("send"+str(sys.argv[2]))
+                serverResponse = s.recv(1024)
+                if serverResponse == "ERR":
+                    print "A file with the same name is allready saved on the server"
+                else:
+                    s.send(str(os.path.getsize(filename)))
+                    with open(filename, "rb") as f: 
+                        bytesToSend = f.read(1024)
+                        s.send(bytesToSend)
+                        while bytesToSend != "":
+                            bytesToSend = f.read(1024)
+                            s.send(bytesToSend)
+            else:
+                print "File does not exist in this directory!"
+             
+            serverResponse = s.recv(1024)
+            print serverResponse
+            s.close()
+            
         else:
-            s.send(str(os.path.getsize(filename)))
-            with open(filename, "rb") as f: 
-                bytesToSend = f.read(1024)
-                s.send(bytesToSend)
-                while bytesToSend != "":
-                    bytesToSend = f.read(1024)
-                    s.send(bytesToSend)
-
-        serverResponse = s.recv(1024)
-        print serverResponse
-        s.close()
+            print "File name needs to be less than 20 characters"
         
         
         

@@ -9,18 +9,18 @@ def cursor_sql(command,file_details):
     if command =="upload":
         #insert_sql(file_details)
         print "upload"
-        sqlstuff = "INSERT INTO test (filename , size ,  downloads) VALUES (%s,%s,%s)" 
+        sqlstuff = "INSERT INTO share_table (File_name , size ,  downloads) VALUES (%s,%s,%s)" 
         my_cursor.execute(sqlstuff ,(file_details))
         mydb.commit()
     if command =="remove":
         print "remove"
-        my_sql = "DELETE FROM test WHERE filename = %s"
+        my_sql = "DELETE FROM share_table WHERE File_name = %s"
         my_cursor.execute(my_sql,(file_details,))
         mydb.commit()
     if command == "modify" :
         print file_details
         
-        sql_com = "SELECT downloads = downloads + 1  FROM test WHERE filename = %s"
+        sql_com = "UPDATE share_table SET downloads = downloads + 1  WHERE File_name = %s"
         my_cursor.execute(sql_com,(file_details,))
         mydb.commit()
 
@@ -34,7 +34,6 @@ def get_files(sock):
 def del_file(sock,name):
     if os.path.isfile(name):
         sock.send("EXISTS")
-        print "test"
         userResponse = sock.recv(1024)
         
         if userResponse == "Y":
@@ -54,7 +53,7 @@ def Retrfile(filename,sock):#sending file from the server to the client
                 while bytesToSend != "":
                     bytesToSend = f.read(1024)
                     sock.send(bytesToSend)
-                    cursor_sql("modify",filename)
+            cursor_sql("modify",filename)
     else:
         sock.send("ERR ")
         
@@ -62,13 +61,12 @@ def Retrfile(filename,sock):#sending file from the server to the client
         
 def send_file(sock,filename):# file transfered from the client to the server.
     
-    if os.path.isfile(filename): #and len(filename)<??
+    if os.path.isfile(filename): 
         sock.send("ERR")
-        print "message send: ERR"#
+        print "message send: ERR"
     else:
         sock.send("ok")
         data = sock.recv(1024)
-        print data
         filesize = long(data)
         f = open(filename, "wb")
         data = sock.recv(1024)
@@ -126,6 +124,4 @@ main()
 
 """ bug report :
 1 script crashes if the client attempts to send file that does not exist in the fclient folder 
-2 cannot modify file send from client to server while script is running (f.close on server?)
-3 send file from client must be !=0
-4 the position column does not update after removing a file SQL """
+2 cannot modify file send from client to server while script is running (f.close on server?)"""
